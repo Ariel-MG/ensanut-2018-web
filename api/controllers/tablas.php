@@ -22,11 +22,12 @@ function ctrl_tablas_lista(PDO $pdo): void
         $place[]          = ":t$i";
         $params[":t$i"]   = ident_schema_value($t);
     }
+    $params[':schema'] = schema_name();
     $in = implode(',', $place);
 
     $stmt = $pdo->prepare(
         "SELECT table_name FROM information_schema.tables
-         WHERE table_schema = 'public' AND table_name IN ($in)
+         WHERE table_schema = :schema AND table_name IN ($in)
          ORDER BY table_name"
     );
     $stmt->execute($params);
@@ -35,7 +36,7 @@ function ctrl_tablas_lista(PDO $pdo): void
     // Conteo de columnas por tabla.
     $stmt = $pdo->prepare(
         "SELECT table_name, COUNT(*) AS n FROM information_schema.columns
-         WHERE table_schema = 'public' AND table_name IN ($in)
+         WHERE table_schema = :schema AND table_name IN ($in)
          GROUP BY table_name"
     );
     $stmt->execute($params);
@@ -77,10 +78,10 @@ function ctrl_tablas_columnas(PDO $pdo, string $tabla): void
          LEFT JOIN diccionario_de_datos d
                 ON UPPER(d.nombre_de_la_tabla)   = :tabla
                AND UPPER(d.nombre_de_la_columna) = UPPER(c.column_name)
-         WHERE c.table_schema = 'public' AND c.table_name = :tname
+         WHERE c.table_schema = :schema AND c.table_name = :tname
          ORDER BY c.ordinal_position"
     );
-    $stmt->execute([':tabla' => $tabla, ':tname' => ident_schema_value($tabla)]);
+    $stmt->execute([':tabla' => $tabla, ':tname' => ident_schema_value($tabla), ':schema' => schema_name()]);
 
     $columnas = [];
     foreach ($stmt->fetchAll() as $row) {

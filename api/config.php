@@ -24,6 +24,9 @@ return [
     'user'     => getenv('DB_USER')     ?: 'postgres',
     'password' => getenv('DB_PASSWORD') ?: '',
 
+    // Schema donde viven las tablas (la ENSANUT está en 'ensanut', no 'public').
+    'schema'   => getenv('DB_SCHEMA')   ?: 'public',
+
     // Case de identificadores en la BD destino.
     //   'lower' → tablas/columnas en minúsculas (default de Postgres sin comillas).
     //   'upper' → tablas/columnas en MAYÚSCULAS, almacenadas entre comillas.

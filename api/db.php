@@ -37,7 +37,27 @@ function db(): PDO
         throw new RuntimeException('No se pudo conectar a la base de datos.', 0, $e);
     }
 
+    // Resuelve las tablas sin calificar hacia el schema configurado (las tablas
+    // de la ENSANUT viven en el schema 'ensanut', no en 'public').
+    $schema       = str_replace('"', '', schema_name());
+    $pdo->exec('SET search_path TO "' . $schema . '", public');
+
     return $pdo;
+}
+
+/**
+ * Devuelve el schema configurado donde viven las tablas (default 'public').
+ *
+ * @return string
+ */
+function schema_name(): string
+{
+    static $s = null;
+    if ($s === null) {
+        $cfg = require __DIR__ . '/config.php';
+        $s   = $cfg['schema'] ?? 'public';
+    }
+    return $s;
 }
 
 /**

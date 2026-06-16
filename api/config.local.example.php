@@ -17,6 +17,9 @@ return [
     'user'       => 'TU_USUARIO',
     'password'   => 'TU_PASSWORD',
 
+    // Schema donde están las tablas ENSANUT (ej. 'ensanut'). 'public' por defecto.
+    'schema'     => 'public',
+
     // 'lower' si las tablas están en minúsculas (cs_adultos),
     // 'upper' si están en MAYÚSCULAS (CS_ADULTOS). Verifícalo con:
     //   SELECT table_name FROM information_schema.tables WHERE table_schema='public';

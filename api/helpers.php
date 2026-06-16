@@ -109,10 +109,10 @@ function columnas_validas(PDO $pdo, string $tabla): array
 
     $stmt = $pdo->prepare(
         "SELECT column_name FROM information_schema.columns
-         WHERE table_schema = 'public' AND table_name = :t
+         WHERE table_schema = :schema AND table_name = :t
          ORDER BY ordinal_position"
     );
-    $stmt->execute([':t' => ident_schema_value($tabla)]);
+    $stmt->execute([':schema' => schema_name(), ':t' => ident_schema_value($tabla)]);
 
     $cols = [];
     foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $c) {
