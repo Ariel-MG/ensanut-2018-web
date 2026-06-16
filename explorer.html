@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <title>ENSANUT 2018 — Explorador</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar__logo"><img src="assets/img/Logo.png" alt="Logo" /></div>
+      <nav class="sidebar__nav" id="sidebar-nav">
+        <div class="sidebar__loading">Cargando tablas...</div>
+      </nav>
+    </aside>
+
+    <!-- Contenido -->
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar__title">Data Explorer</div>
+        <div class="topbar__right">
+          <div id="dict-search"></div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div id="explorer-root" style="height:100%"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/explorer.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+  <title>ENSANUT 2018 — Dashboard</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar__logo"><img src="assets/img/Logo.png" alt="Logo" /></div>
+      <nav class="sidebar__nav" id="sidebar-nav">
+        <div class="sidebar__loading">Cargando tablas...</div>
+      </nav>
+    </aside>
+
+    <!-- Contenido -->
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar__title">Dashboard Resumen</div>
+        <div class="topbar__right">
+          <div id="dict-search"></div>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- KPIs -->
+        <div class="kpi-grid" id="kpi-grid">
+          <div class="kpi"><div class="kpi__label">Total de registros</div><div class="kpi__value" id="kpi-registros">—</div></div>
+          <div class="kpi"><div class="kpi__label">Módulos / tablas</div><div class="kpi__value" id="kpi-tablas">—</div></div>
+          <div class="kpi"><div class="kpi__label">Cuestionario de Salud</div><div class="kpi__value" id="kpi-cs">—</div></div>
+          <div class="kpi"><div class="kpi__label">Cuestionario de Nutrición</div><div class="kpi__value" id="kpi-cn">—</div></div>
+        </div>
+
+        <!-- Lista de tablas -->
+        <h2 class="section-title">Tablas disponibles</h2>
+        <div class="tabla-list" id="tabla-list">
+          <div class="state"><div class="spinner"></div></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+</body>
+</html>

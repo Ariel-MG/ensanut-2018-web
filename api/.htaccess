@@ -1,0 +1,17 @@
+# Enruta todas las peticiones que no sean archivos reales hacia index.php.
+# Si el hosting no tiene mod_rewrite, usa el fallback ?r= (ver index.php).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /api/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Evita listar el directorio.
+Options -Indexes
+
+# Protege archivos sensibles.
+<FilesMatch "^(config\.php)$">
+    Require all denied
+</FilesMatch>
