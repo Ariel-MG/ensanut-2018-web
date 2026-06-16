@@ -12,6 +12,6 @@
 Options -Indexes
 
 # Protege archivos sensibles.
-<FilesMatch "^(config\.php)$">
+<FilesMatch "^(config\.php|config\.local\.php|config\.local\.example\.php)$">
     Require all denied
 </FilesMatch>

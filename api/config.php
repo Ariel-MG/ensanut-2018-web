@@ -2,13 +2,20 @@
 /**
  * Configuración de conexión a PostgreSQL.
  *
- * Las credenciales se leen de variables de entorno si existen; si no, usan los
- * valores por defecto de abajo. En el servidor de producción, define las
- * variables de entorno o edita los defaults — y, de ser posible, mueve este
- * archivo fuera del webroot.
- *
- * Variables soportadas: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD.
+ * Orden de prioridad:
+ *   1) api/config.local.php  → archivo NO versionado con las credenciales reales
+ *      (recomendado en producción). Copia config.local.example.php a
+ *      config.local.php y edítalo en el servidor. Está en .gitignore, así que
+ *      nunca se sube al repo.
+ *   2) Variables de entorno: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD,
+ *      DB_IDENT_CASE.
+ *   3) Los valores por defecto de abajo (solo para desarrollo).
  */
+
+$localFile = __DIR__ . '/config.local.php';
+if (is_file($localFile)) {
+    return require $localFile;
+}
 
 return [
     'host'     => getenv('DB_HOST')     ?: 'localhost',

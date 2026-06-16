@@ -52,12 +52,23 @@ public_html/
 
 ## Configuración
 
-Edita `api/config.php` (o define variables de entorno):
+Credenciales (recomendado, repo público → archivo no versionado):
 
+```bash
+cp api/config.local.example.php api/config.local.php
+# edita api/config.local.php con tus credenciales reales
 ```
-DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
-DB_IDENT_CASE = lower | upper
-```
+
+`api/config.local.php` está en `.gitignore`, así que nunca se sube. Alternativa:
+definir variables de entorno `DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD,
+DB_IDENT_CASE`.
+
+### Routing
+
+Por defecto el frontend usa `api/index.php?r=...` (no requiere `mod_rewrite`),
+y resuelve la API de forma **relativa**, por lo que funciona en subcarpetas como
+`https://host/~usuario/`. Si tu hosting tiene `mod_rewrite` + `AllowOverride` y
+prefieres URLs limpias, pon `const USE_REWRITE = true;` en `assets/js/api.js`.
 
 ### ⚠️ Paso obligatorio: `DB_IDENT_CASE`
 
@@ -94,12 +105,10 @@ Y abre `http://localhost:8080/index.html` en el navegador.
 
 ## Despliegue
 
-1. Sube el contenido de `public_html/` a la raíz web del hosting.
-2. Configura las credenciales en `api/config.php` y el `DB_IDENT_CASE`.
+1. Sube/clona el contenido en la raíz web (o subcarpeta `/~usuario/`).
+2. Crea `api/config.local.php` con las credenciales y el `ident_case` correcto.
 3. Verifica que el hosting tenga la extensión: `php -m | grep pgsql`.
-4. Si **no** hay `mod_rewrite`, las URLs limpias no funcionarán. Abre
-   `assets/js/api.js` y cambia `const USE_REWRITE = true;` a `false`. El frontend
-   pasará entonces a usar `/api/index.php?r=...` automáticamente.
+4. El routing por defecto (`?r=`) ya funciona sin `mod_rewrite` y en subcarpetas.
 
 ## Qué se eliminó respecto al original
 

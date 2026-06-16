@@ -3,13 +3,20 @@
  * Usa fetch() contra rutas relativas /api, sin sesión ni interceptores.
  */
 
-// Base de la API. Relativa al dominio donde se sirva el frontend.
-const API_BASE = '/api';
-
 // Modo de routing:
-//   true  → URLs limpias (requiere mod_rewrite): /api/tablas/CS_ADULTOS/registros
-//   false → fallback sin mod_rewrite:            /api/index.php?r=tablas/CS_ADULTOS/registros
-const USE_REWRITE = true;
+//   false → llamadas directas a api/index.php?r=... (NO requiere mod_rewrite).
+//           Es lo más compatible, incluyendo hosting en subcarpetas (/~usuario/).
+//   true  → URLs limpias (requiere mod_rewrite y AllowOverride): api/tablas/...
+const USE_REWRITE = false;
+
+/**
+ * Directorio del documento actual, con '/' final. Soporta despliegues en
+ * subrutas como https://host/~datascience/ (no asume la raíz del dominio).
+ * @returns {string}
+ */
+function baseDir() {
+  return window.location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
+}
 
 /**
  * Construye la URL absoluta de un endpoint, según el modo de routing.
@@ -21,9 +28,9 @@ function apiUrl(path, params = {}) {
   const clean = String(path).replace(/^\/+/, ''); // sin '/' inicial
   let url;
   if (USE_REWRITE) {
-    url = new URL(`${API_BASE}/${clean}`, window.location.origin);
+    url = new URL('api/' + clean, baseDir());
   } else {
-    url = new URL(`${API_BASE}/index.php`, window.location.origin);
+    url = new URL('api/index.php', baseDir());
     url.searchParams.set('r', clean);
   }
   Object.entries(params).forEach(([k, v]) => {
