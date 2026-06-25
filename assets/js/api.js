@@ -57,14 +57,48 @@ async function apiGet(path, params = {}) {
   return body;
 }
 
+/**
+ * GET con caché en sessionStorage (vive sólo mientras la pestaña esté abierta).
+ * Se usa SÓLO para datos "estructurales" y costosos (lista de tablas, columnas),
+ * NO para registros/filtros, para no saturar el almacenamiento del navegador.
+ * @param {string} path
+ * @param {number} ttlMs  Tiempo de validez del caché.
+ */
+async function cachedGet(path, ttlMs) {
+  const key = 'ensanut-cache:' + path;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (raw) {
+      const { t, data } = JSON.parse(raw);
+      if (Date.now() - t < ttlMs) return data;        // fresco → sin red
+    }
+  } catch (_) { /* sessionStorage no disponible o corrupto */ }
+
+  const data = await apiGet(path);
+  try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), data })); }
+  catch (_) { /* cuota llena: seguimos sin cachear */ }
+  return data;
+}
+
+/** Invalida todo el caché de la API (por si se necesita forzar recarga). */
+function clearApiCache() {
+  try {
+    Object.keys(sessionStorage)
+      .filter((k) => k.startsWith('ensanut-cache:'))
+      .forEach((k) => sessionStorage.removeItem(k));
+  } catch (_) {}
+}
+
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutos
+
 const dataService = {
-  /** Lista de tablas con dominio y conteos. */
-  getTablas: () => apiGet('/tablas'),
+  /** Lista de tablas y vistas (cacheada: es la llamada más costosa). */
+  getTablas: () => cachedGet('/tablas', CACHE_TTL),
 
-  /** Columnas de una tabla con descripciones del diccionario. */
-  getColumnas: (tabla) => apiGet(`/tablas/${encodeURIComponent(tabla)}/columnas`),
+  /** Columnas de una tabla con descripciones del diccionario (cacheada). */
+  getColumnas: (tabla) => cachedGet(`/tablas/${encodeURIComponent(tabla)}/columnas`, CACHE_TTL),
 
-  /** Registros paginados con filtros dinámicos. */
+  /** Registros paginados con filtros dinámicos (NUNCA se cachea: cambia siempre). */
   getRegistros: (tabla, params) => apiGet(`/tablas/${encodeURIComponent(tabla)}/registros`, params),
 
   /** Busca variables en el diccionario de datos. */

@@ -8,32 +8,24 @@
 const PARAMS_RESERVADOS = ['pagina', 'limite', 'columnas', 'r'];
 
 /**
- * GET /api/tablas — lista de tablas con dominio y conteos exactos.
+ * GET /api/tablas — lista de tablas y vistas con dominio y conteos.
+ *
+ * Las TABLAS llevan COUNT(*) exacto. Las VISTAS llevan tipo='vista' y NO se
+ * cuentan (algunas tardan decenas de segundos); su total_registros es null.
  */
 function ctrl_tablas_lista(PDO $pdo): void
 {
-    // Tablas de la whitelist que existen físicamente.
-    $whitelist = TABLAS_PERMITIDAS;
-    sort($whitelist);
-
+    // Conteo de columnas de todas las entidades (tablas + vistas) en una query.
+    $todas  = array_merge(TABLAS_PERMITIDAS, VISTAS_PERMITIDAS);
     $place  = [];
     $params = [];
-    foreach ($whitelist as $i => $t) {
-        $place[]          = ":t$i";
-        $params[":t$i"]   = ident_schema_value($t);
+    foreach ($todas as $i => $t) {
+        $place[]        = ":t$i";
+        $params[":t$i"] = ident_schema_value($t);
     }
     $params[':schema'] = schema_name();
     $in = implode(',', $place);
 
-    $stmt = $pdo->prepare(
-        "SELECT table_name FROM information_schema.tables
-         WHERE table_schema = :schema AND table_name IN ($in)
-         ORDER BY table_name"
-    );
-    $stmt->execute($params);
-    $nombres = array_map('strtoupper', $stmt->fetchAll(PDO::FETCH_COLUMN));
-
-    // Conteo de columnas por tabla.
     $stmt = $pdo->prepare(
         "SELECT table_name, COUNT(*) AS n FROM information_schema.columns
          WHERE table_schema = :schema AND table_name IN ($in)
@@ -45,13 +37,18 @@ function ctrl_tablas_lista(PDO $pdo): void
         $colCounts[strtoupper($row['table_name'])] = (int) $row['n'];
     }
 
-    // COUNT(*) real por tabla (seguro: vienen de la whitelist).
-    $tablas = [];
-    foreach ($nombres as $nombre) {
+    $entidades = [];
+
+    // --- Tablas: COUNT(*) real (seguro: vienen de la whitelist). ---
+    $tablas = TABLAS_PERMITIDAS;
+    sort($tablas);
+    foreach ($tablas as $nombre) {
+        if (!isset($colCounts[$nombre])) continue; // no existe físicamente
         $c = $pdo->query("SELECT COUNT(*) FROM " . qid($nombre))->fetchColumn();
         $prefijo = explode('_', $nombre)[0];
-        $tablas[] = [
+        $entidades[] = [
             'nombre'              => $nombre,
+            'tipo'                => 'tabla',
             'dominio'             => $prefijo,
             'descripcion_dominio' => DOMINIOS[$prefijo] ?? 'Desconocido',
             'total_registros'     => (int) $c,
@@ -59,7 +56,29 @@ function ctrl_tablas_lista(PDO $pdo): void
         ];
     }
 
-    json_response(['total_tablas' => count($tablas), 'tablas' => $tablas]);
+    // --- Vistas: SIN COUNT(*) (total null). ---
+    $vistas = VISTAS_PERMITIDAS;
+    sort($vistas);
+    foreach ($vistas as $nombre) {
+        if (!isset($colCounts[$nombre])) continue;
+        $entidades[] = [
+            'nombre'              => $nombre,
+            'tipo'                => 'vista',
+            'dominio'             => 'VW',
+            'descripcion_dominio' => descripcion_vista($nombre),
+            'total_registros'     => null,
+            'total_columnas'      => $colCounts[$nombre] ?? 0,
+        ];
+    }
+
+    $nTablas = count(array_filter($entidades, fn($e) => $e['tipo'] === 'tabla'));
+    $nVistas = count(array_filter($entidades, fn($e) => $e['tipo'] === 'vista'));
+
+    json_response([
+        'total_tablas' => $nTablas,
+        'total_vistas' => $nVistas,
+        'tablas'       => $entidades,
+    ]);
 }
 
 /**
@@ -166,26 +185,43 @@ function ctrl_tablas_registros(PDO $pdo, string $tabla): void
     [$where, $params]     = construir_filtros($validas, $tabla);
 
     $tablaSql = qid($tabla);
+    $esVista  = es_vista($tabla);
+    $offset   = ($pagina - 1) * $limite;
 
-    // Total con filtros.
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM $tablaSql $where");
-    $stmt->execute($params);
-    $total = (int) $stmt->fetchColumn();
+    // En TABLAS calculamos el total exacto. En VISTAS lo evitamos (COUNT(*) puede
+    // tardar decenas de segundos): pedimos una fila extra para saber si hay más.
+    if (!$esVista) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM $tablaSql $where");
+        $stmt->execute($params);
+        $total   = (int) $stmt->fetchColumn();
+        $fetch   = $limite;
+        $hayMas  = ($offset + $limite) < $total;
+    } else {
+        $total = null;
+        $fetch = $limite + 1; // +1 para detectar página siguiente sin contar.
+    }
 
     // Página de datos.
-    $offset = ($pagina - 1) * $limite;
-    $sql    = "SELECT $colsSql FROM $tablaSql $where LIMIT :limite OFFSET :offset";
-    $stmt   = $pdo->prepare($sql);
+    $sql  = "SELECT $colsSql FROM $tablaSql $where LIMIT :limite OFFSET :offset";
+    $stmt = $pdo->prepare($sql);
     foreach ($params as $k => $v) {
         $stmt->bindValue($k, $v);
     }
-    $stmt->bindValue(':limite', $limite, PDO::PARAM_INT);
+    $stmt->bindValue(':limite', $fetch, PDO::PARAM_INT);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
 
+    $rows = $stmt->fetchAll();
+    if ($esVista) {
+        $hayMas = count($rows) > $limite;
+        if ($hayMas) {
+            array_pop($rows); // descartar la fila extra de sondeo
+        }
+    }
+
     // Normaliza las claves de cada registro a MAYÚSCULAS (consistencia con la API).
     $registros = [];
-    foreach ($stmt->fetchAll() as $row) {
+    foreach ($rows as $row) {
         $up = [];
         foreach ($row as $k => $v) {
             $up[strtoupper($k)] = $v;
@@ -195,10 +231,11 @@ function ctrl_tablas_registros(PDO $pdo, string $tabla): void
 
     json_response([
         'tabla'     => $tabla,
+        'tipo'      => $esVista ? 'vista' : 'tabla',
         'total'     => $total,
         'pagina'    => $pagina,
         'limite'    => $limite,
-        'hay_mas'   => ($offset + $limite) < $total,
+        'hay_mas'   => $hayMas,
         'columnas'  => $colsResp,
         'registros' => $registros,
     ]);

@@ -2,25 +2,58 @@
  * Layout compartido (sidebar + topbar) y buscador global de diccionario.
  * Reemplaza src/layouts/MainLayout.jsx y src/components/DictionarySearchModal.jsx,
  * sin la lógica de sesión (la conexión a BD es fija en el servidor).
- *
- * Uso en cada página:
- *   <body> ... <script src="assets/js/api.js"></script>
- *              <script src="assets/js/ui.js"></script>
- *   y un contenedor con id="app-root" donde se inyecta el layout, o el HTML
- *   define la estructura y llama initLayout({active, currentTable, title}).
  */
 
+/** Devuelve el markup de un icono del sprite SVG (assets/img/ui-icons.svg). */
+function icon(name, cls = '') {
+  return `<svg class="icon ${cls}" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-${name}"></use></svg>`;
+}
+
 /**
- * Inicializa el sidebar y topbar dentro de los contenedores con
- * id="sidebar-nav" (lista de tablas) y id="dict-search" (buscador).
- *
+ * Inicializa el sidebar, el buscador y el toggle de menú móvil.
  * @param {Object} opts
  * @param {string} [opts.currentTable]  Tabla activa (para resaltar en el menú).
  */
 async function initLayout(opts = {}) {
   const { currentTable = null } = opts;
+  setupNavToggle();
   renderDictSearch();
   await renderSidebar(currentTable);
+}
+
+/**
+ * Botón ☰: en móvil abre/cierra el sidebar como cajón (nav-open); en escritorio
+ * lo oculta/muestra (nav-collapsed) y recuerda la preferencia en localStorage.
+ */
+function setupNavToggle() {
+  const app  = document.getElementById('app');
+  const btn  = document.getElementById('menu-btn');
+  const back = document.getElementById('backdrop');
+  if (!app) return;
+
+  const isMobile = () => window.matchMedia('(max-width: 1024px)').matches;
+
+  // Restaurar preferencia de escritorio.
+  if (localStorage.getItem('ensanut-nav') === 'collapsed') app.classList.add('nav-collapsed');
+
+  const toggle = () => {
+    if (isMobile()) {
+      app.classList.toggle('nav-open');
+    } else {
+      app.classList.toggle('nav-collapsed');
+      localStorage.setItem('ensanut-nav', app.classList.contains('nav-collapsed') ? 'collapsed' : 'open');
+    }
+  };
+  const closeMobile = () => app.classList.remove('nav-open');
+
+  if (btn)  btn.addEventListener('click', toggle);
+  if (back) back.addEventListener('click', closeMobile);
+  // Al navegar desde el menú, cerrar el cajón móvil.
+  document.getElementById('sidebar-nav')?.addEventListener('click', (e) => {
+    if (e.target.closest('a') && isMobile()) closeMobile();
+  });
+  // Al cruzar a escritorio, asegurar que el cajón móvil quede cerrado.
+  window.addEventListener('resize', () => { if (!isMobile()) closeMobile(); });
 }
 
 /**
@@ -33,23 +66,38 @@ async function renderSidebar(currentTable) {
 
   try {
     const data = await dataService.getTablas();
-    const tablas = (data.tablas || []).slice().sort((a, b) => b.total_registros - a.total_registros);
+    const entidades = data.tablas || [];
+    const tablas = entidades.filter((t) => t.tipo !== 'vista').sort((a, b) => b.total_registros - a.total_registros);
+    const vistas = entidades.filter((t) => t.tipo === 'vista').sort((a, b) => a.nombre.localeCompare(b.nombre));
 
     const dashActive = !currentTable ? 'is-active' : '';
     let html = `
       <a href="index.html" class="navlink ${dashActive}">
-        <span>📊</span><span class="navlink__name">Dashboard Resumen</span>
+        ${icon('dashboard')}<span class="navlink__name">Dashboard Resumen</span>
       </a>
-      <div class="sidebar__section">Tablas de Datos</div>
+      <div class="sidebar__section">Tablas de datos</div>
     `;
 
     for (const t of tablas) {
       const active = currentTable === t.nombre ? 'is-active' : '';
       html += `
-        <a href="explorer.html?tabla=${encodeURIComponent(t.nombre)}" class="navlink ${active}" title="${t.nombre}">
-          <span>🗄️</span><span class="navlink__name">${t.nombre}</span>
+        <a href="explorer.html?tabla=${encodeURIComponent(t.nombre)}" class="navlink ${active}" title="${t.nombre} · ${fmtNum(t.total_registros)} registros">
+          ${icon('table')}<span class="navlink__name">${t.nombre}</span>
+          <span class="navlink__count">${fmtCompact(t.total_registros)}</span>
         </a>`;
     }
+
+    if (vistas.length) {
+      html += `<div class="sidebar__section">Vistas analíticas</div>`;
+      for (const t of vistas) {
+        const active = currentTable === t.nombre ? 'is-active' : '';
+        html += `
+          <a href="explorer.html?tabla=${encodeURIComponent(t.nombre)}" class="navlink ${active}" title="${t.nombre} (vista)">
+            ${icon('layers')}<span class="navlink__name">${t.nombre}</span>
+          </a>`;
+      }
+    }
+
     nav.innerHTML = html;
   } catch (e) {
     nav.innerHTML = `<div class="sidebar__loading">No se pudieron cargar las tablas.</div>`;
@@ -65,7 +113,10 @@ function renderDictSearch() {
 
   root.classList.add('dictsearch');
   root.innerHTML = `
-    <input type="text" id="dict-input" placeholder="Buscar variable en el diccionario..." autocomplete="off" />
+    <div class="dictsearch__field">
+      ${icon('search')}
+      <input type="text" id="dict-input" placeholder="Buscar variable en el diccionario..." autocomplete="off" />
+    </div>
     <div class="dictsearch__results" id="dict-results"></div>
   `;
 
@@ -82,15 +133,15 @@ function renderDictSearch() {
       const data = await dataService.buscarDiccionario({ termino: term, limite: 8 });
       const items = data.resultados || [];
       if (!items.length) {
-        results.innerHTML = `<div class="dictsearch__empty">Sin resultados para "${term}".</div>`;
+        results.innerHTML = `<div class="dictsearch__empty">Sin resultados para "${escapeHtml(term)}".</div>`;
       } else {
         results.innerHTML = items.map((r) => `
-          <div class="dictresult" data-tabla="${r.nombre_de_la_tabla}">
+          <div class="dictresult" data-tabla="${escapeHtml(r.nombre_de_la_tabla)}">
             <div>
-              <span class="dictresult__col">${r.nombre_de_la_columna}</span>
-              <span class="dictresult__table">${r.nombre_de_la_tabla}</span>
+              <span class="dictresult__col">${escapeHtml(r.nombre_de_la_columna)}</span>
+              <span class="dictresult__table">${escapeHtml(r.nombre_de_la_tabla)}</span>
             </div>
-            <div class="dictresult__desc">${r.descripcion ?? ''}</div>
+            <div class="dictresult__desc">${escapeHtml(r.descripcion ?? '')}</div>
           </div>
         `).join('');
         results.querySelectorAll('.dictresult').forEach((el) => {
@@ -110,4 +161,16 @@ function renderDictSearch() {
   document.addEventListener('click', (e) => {
     if (!root.contains(e.target)) results.classList.remove('is-open');
   });
+}
+
+/** Escapa texto para insertarlo de forma segura en HTML. */
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+/** Formato compacto de números grandes para chips del menú (3.7M, 43K). */
+function fmtCompact(n) {
+  return Number(n || 0).toLocaleString('es-MX', { notation: 'compact', maximumFractionDigits: 1 });
 }

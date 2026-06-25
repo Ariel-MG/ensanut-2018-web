@@ -23,7 +23,7 @@
   if (!tabla) {
     root.innerHTML = `
       <div class="card state" style="height:100%">
-        <div style="font-size:40px">🗂️</div>
+        <div class="state__icon">${icon('folder', 'icon--lg')}</div>
         <h2>Ninguna tabla seleccionada</h2>
         <p>Selecciona un módulo desde el menú lateral para comenzar a explorar los datos de la ENSANUT.</p>
       </div>`;
@@ -54,30 +54,30 @@
     root.innerHTML = `
       <div class="explorer">
         <div class="explorer__header">
-          <div class="explorer__title">Explorando: ${esc(tabla)}</div>
+          <div class="explorer__title">${icon('table')} ${esc(tabla)}</div>
           <div class="explorer__controls">
             <div class="filter-panel" id="filter-panel">
               <button class="btn btn--ghost" id="filter-toggle">
-                Filtros ${nFiltros ? `<span class="filter-badge">${nFiltros}</span>` : ''}
+                ${icon('filter')} Filtros ${nFiltros ? `<span class="filter-badge">${nFiltros}</span>` : ''}
               </button>
               <div class="filter-panel__pop" id="filter-pop"></div>
             </div>
-            <button class="btn btn--primary" id="export-btn">⬇ Exportar CSV</button>
+            <button class="btn btn--primary" id="export-btn">${icon('download')} Exportar CSV</button>
           </div>
         </div>
         <div class="explorer__body" id="explorer-body">
-          <div class="toast" id="toast"><div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Actualizando...</div>
+          <div class="toast" id="toast">${icon('refresh')} Actualizando...</div>
           <table class="data" id="data-table">
             <thead id="data-head"></thead>
             <tbody id="data-body"></tbody>
           </table>
         </div>
         <div class="pagination">
-          <div id="total-label">Total de registros: 0</div>
+          <div class="pagination__total" id="total-label">Total de registros: 0</div>
           <div class="pagination__controls">
-            <button class="icon-btn" id="prev-btn">‹</button>
+            <button class="icon-btn" id="prev-btn" aria-label="Anterior">${icon('chevron-left')}</button>
             <span class="pagination__page" id="page-label">Página 1</span>
-            <button class="icon-btn" id="next-btn">›</button>
+            <button class="icon-btn" id="next-btn" aria-label="Siguiente">${icon('chevron-right')}</button>
           </div>
         </div>
       </div>`;
@@ -109,17 +109,18 @@
     });
 
     // Construir los campos a partir de las columnas.
-    pop.innerHTML = state.columnas.map((col) => {
-      const opciones = parseRangos(col.rangos_claves);
-      const actual   = state.filtros[col.nombre] ?? '';
-      if (opciones) {
-        const opts = ['<option value="">(todos)</option>']
-          .concat(opciones.map((o) => `<option value="${esc(o.valor)}" ${actual === o.valor ? 'selected' : ''}>${esc(o.valor)} — ${esc(o.etiqueta)}</option>`))
-          .join('');
-        return `<div class="filter-row"><label>${esc(col.nombre)}</label><select data-col="${esc(col.nombre)}">${opts}</select></div>`;
-      }
-      return `<div class="filter-row"><label>${esc(col.nombre)}</label><input type="text" data-col="${esc(col.nombre)}" value="${esc(actual)}" placeholder="filtrar..." /></div>`;
-    }).join('') + `
+    pop.innerHTML = `<div class="filter-panel__head">Filtrar ${esc(tabla)}</div>` +
+      state.columnas.map((col) => {
+        const opciones = parseRangos(col.rangos_claves);
+        const actual   = state.filtros[col.nombre] ?? '';
+        if (opciones) {
+          const opts = ['<option value="">(todos)</option>']
+            .concat(opciones.map((o) => `<option value="${esc(o.valor)}" ${actual === o.valor ? 'selected' : ''}>${esc(o.valor)} — ${esc(o.etiqueta)}</option>`))
+            .join('');
+          return `<div class="filter-row"><label>${esc(col.nombre)}</label><select data-col="${esc(col.nombre)}">${opts}</select></div>`;
+        }
+        return `<div class="filter-row"><label>${esc(col.nombre)}</label><input type="text" data-col="${esc(col.nombre)}" value="${esc(actual)}" placeholder="filtrar..." /></div>`;
+      }).join('') + `
       <div class="filter-panel__actions">
         <button class="btn btn--primary" id="filter-apply" style="flex:1">Aplicar</button>
         <button class="btn btn--ghost" id="filter-clear">Limpiar</button>
@@ -152,7 +153,7 @@
     head.innerHTML = '<tr>' + state.columnas.map((col) => {
       const desc = `${col.descripcion ?? ''}${col.rangos_claves ? ` (Rangos: ${col.rangos_claves})` : ''}`;
       return `<th>
-        <span class="th-tip">${esc(col.nombre)} <span class="th-tip__icon">ⓘ</span>
+        <span class="th-tip">${esc(col.nombre)} ${icon('info', 'th-tip__icon')}
           <span class="th-tip__box">${esc(desc || 'Sin descripción')}</span>
         </span>
       </th>`;
@@ -185,16 +186,19 @@
         }).join('') + '</tr>').join('');
       }
 
-      document.getElementById('total-label').textContent = `Total de registros: ${fmtNum(res.total)}`;
+      document.getElementById('total-label').innerHTML = (res.total === null || res.total === undefined)
+        ? `${icon('layers')} <strong>Vista analítica</strong> · conteo no calculado`
+        : `Total de registros: <strong>${fmtNum(res.total)}</strong>`;
       document.getElementById('page-label').textContent  = `Página ${state.page}`;
       document.getElementById('prev-btn').disabled = state.page <= 1;
       document.getElementById('next-btn').disabled = !res.hay_mas;
     } catch (e) {
       body.innerHTML = `<tr><td colspan="${state.columnas.length || 1}">
-        <div class="error-box" style="margin:24px auto">
+        <div class="error-box">
+          <div class="state__icon">${icon('alert', 'icon--lg')}</div>
           <h3>Error de consulta</h3>
           <p>${esc(e.message)}</p>
-          <button class="btn btn--ghost" id="retry-clear" style="margin-top:10px">Limpiar filtros e intentar</button>
+          <button class="btn btn--ghost" id="retry-clear" style="margin-top:12px">Limpiar filtros e intentar</button>
         </div></td></tr>`;
       const btn = document.getElementById('retry-clear');
       if (btn) btn.addEventListener('click', () => { state.filtros = {}; state.page = 1; renderShell(); loadRegistros(); });
@@ -210,7 +214,9 @@
       const colData = await dataService.getColumnas(tabla);
       state.columnas = colData.columnas || [];
     } catch (e) {
-      root.innerHTML = `<div class="card state" style="height:100%"><h2>Error</h2><p>${esc(e.message)}</p></div>`;
+      root.innerHTML = `<div class="card state" style="height:100%">
+        <div class="state__icon">${icon('alert', 'icon--lg')}</div>
+        <h2>Error</h2><p>${esc(e.message)}</p></div>`;
       return;
     }
     renderShell();

@@ -8,10 +8,12 @@
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
-  <div class="app">
+  <div class="app" id="app">
+    <div class="backdrop" id="backdrop"></div>
+
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="sidebar__logo"><img src="assets/img/Logo.png" alt="Logo" /></div>
+      <div class="sidebar__logo"><img src="assets/img/Logo.png" alt="ENSANUT 2018" /></div>
       <nav class="sidebar__nav" id="sidebar-nav">
         <div class="sidebar__loading">Cargando tablas...</div>
       </nav>
@@ -20,7 +22,13 @@
     <!-- Contenido -->
     <div class="main">
       <header class="topbar">
-        <div class="topbar__title">Dashboard Resumen</div>
+        <button class="menu-btn" id="menu-btn" aria-label="Ocultar/mostrar menú" title="Ocultar/mostrar menú">
+          <svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-menu"></use></svg>
+        </button>
+        <div>
+          <div class="topbar__title">Dashboard Resumen</div>
+          <div class="topbar__sub">Encuesta Nacional de Salud y Nutrición 2018</div>
+        </div>
         <div class="topbar__right">
           <div id="dict-search"></div>
         </div>
@@ -29,15 +37,90 @@
       <main class="content">
         <!-- KPIs -->
         <div class="kpi-grid" id="kpi-grid">
-          <div class="kpi"><div class="kpi__label">Total de registros</div><div class="kpi__value" id="kpi-registros">—</div></div>
-          <div class="kpi"><div class="kpi__label">Módulos / tablas</div><div class="kpi__value" id="kpi-tablas">—</div></div>
-          <div class="kpi"><div class="kpi__label">Cuestionario de Salud</div><div class="kpi__value" id="kpi-cs">—</div></div>
-          <div class="kpi"><div class="kpi__label">Cuestionario de Nutrición</div><div class="kpi__value" id="kpi-cn">—</div></div>
+          <div class="kpi">
+            <div class="kpi__icon"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-database"></use></svg></div>
+            <div><div class="kpi__label">Total de registros</div><div class="kpi__value" id="kpi-registros">—</div></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__icon"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-table"></use></svg></div>
+            <div><div class="kpi__label">Tablas de datos</div><div class="kpi__value" id="kpi-tablas">—</div></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__icon"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-layers"></use></svg></div>
+            <div><div class="kpi__label">Vistas analíticas</div><div class="kpi__value" id="kpi-vistas">—</div></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__icon kpi__icon--cs"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-activity"></use></svg></div>
+            <div><div class="kpi__label">Registros de Salud</div><div class="kpi__value" id="kpi-cs">—</div></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__icon kpi__icon--cn"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-leaf"></use></svg></div>
+            <div><div class="kpi__label">Registros de Nutrición</div><div class="kpi__value" id="kpi-cn">—</div></div>
+          </div>
         </div>
 
+        <!-- Guía de uso (manual) -->
+        <section class="guide">
+          <h2 class="section-title">
+            <svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-info"></use></svg>
+            ¿Cómo usar esta plataforma?
+          </h2>
+          <div class="guide-grid">
+            <div class="guide-step">
+              <div class="guide-step__icon"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-table"></use></svg></div>
+              <div class="guide-step__n">1</div>
+              <h3>Explora el menú</h3>
+              <p>Abre cualquiera de las <strong>35 tablas</strong> o <strong>12 vistas</strong> desde el menú lateral. Puedes ocultarlo con el botón <span class="kbd">☰</span> de arriba.</p>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step__icon"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-search"></use></svg></div>
+              <div class="guide-step__n">2</div>
+              <h3>Busca variables</h3>
+              <p>Usa el buscador de arriba a la derecha para encontrar cualquier variable y ver su <strong>definición oficial del INEGI</strong>.</p>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step__icon"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-info"></use></svg></div>
+              <div class="guide-step__n">3</div>
+              <h3>Consulta el significado</h3>
+              <p>Dentro de una tabla, pasa el cursor sobre el icono de información de cada columna para leer qué significa esa pregunta.</p>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step__icon"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-filter"></use></svg></div>
+              <div class="guide-step__n">4</div>
+              <h3>Filtra los datos</h3>
+              <p>Con el botón <strong>Filtros</strong> acotas por valores (sexo, edad, entidad…). El conteo se actualiza al instante.</p>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step__icon"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-download"></use></svg></div>
+              <div class="guide-step__n">5</div>
+              <h3>Exporta a CSV</h3>
+              <p>Descarga los datos —con o sin filtros— con el botón <strong>Exportar CSV</strong>. La descarga respeta lo que tengas filtrado.</p>
+            </div>
+            <div class="guide-step">
+              <div class="guide-step__icon"><svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-layers"></use></svg></div>
+              <div class="guide-step__n">6</div>
+              <h3>Vistas analíticas</h3>
+              <p>Las <strong>vistas maestras</strong> ya cruzan varias tablas (salud + nutrición) y están listas para análisis directo.</p>
+            </div>
+          </div>
+        </section>
+
         <!-- Lista de tablas -->
-        <h2 class="section-title">Tablas disponibles</h2>
+        <h2 class="section-title">
+          <svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-table"></use></svg>
+          Tablas disponibles
+        </h2>
         <div class="tabla-list" id="tabla-list">
+          <div class="state"><div class="spinner"></div></div>
+        </div>
+
+        <!-- Vistas analíticas -->
+        <h2 class="section-title" id="vistas-title" style="margin-top:34px">
+          <svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-layers"></use></svg>
+          Vistas analíticas
+          <span class="section-hint">Tablas maestras ya cruzadas, listas para análisis</span>
+        </h2>
+        <div class="tabla-list" id="vistas-list">
           <div class="state"><div class="spinner"></div></div>
         </div>
       </main>

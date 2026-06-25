@@ -8,10 +8,12 @@
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
-  <div class="app">
+  <div class="app" id="app">
+    <div class="backdrop" id="backdrop"></div>
+
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="sidebar__logo"><img src="assets/img/Logo.png" alt="Logo" /></div>
+      <div class="sidebar__logo"><img src="assets/img/Logo.png" alt="ENSANUT 2018" /></div>
       <nav class="sidebar__nav" id="sidebar-nav">
         <div class="sidebar__loading">Cargando tablas...</div>
       </nav>
@@ -20,13 +22,19 @@
     <!-- Contenido -->
     <div class="main">
       <header class="topbar">
-        <div class="topbar__title">Data Explorer</div>
+        <button class="menu-btn" id="menu-btn" aria-label="Abrir menú">
+          <svg class="icon" aria-hidden="true"><use href="assets/img/ui-icons.svg#i-menu"></use></svg>
+        </button>
+        <div>
+          <div class="topbar__title">Explorador de datos</div>
+          <div class="topbar__sub">Filtra, consulta y exporta a CSV</div>
+        </div>
         <div class="topbar__right">
           <div id="dict-search"></div>
         </div>
       </header>
 
-      <main class="content">
+      <main class="content content--flush">
         <div id="explorer-root" style="height:100%"></div>
       </main>
     </div>

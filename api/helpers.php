@@ -24,11 +24,38 @@ const TABLAS_PERMITIDAS = [
     'CS_RESIDENTES', 'CS_SEGURIDAD_ALIMENTARIA', 'CS_SERV_SALUD', 'CS_VIVIENDAS',
 ];
 
+/**
+ * Whitelist de VISTAS analíticas (capa 1 anti-inyección). Son vistas "maestras"
+ * que cruzan varias tablas; se exploran y exportan igual que las tablas, pero
+ * NO se les calcula COUNT(*) (algunas tardan decenas de segundos).
+ */
+const VISTAS_PERMITIDAS = [
+    'GRAN_MAESTRA_ADOLESCENTES', 'GRAN_MAESTRA_ADULTOS', 'GRAN_MAESTRA_HOGARES', 'GRAN_MAESTRA_NINOS',
+    'MAESTRA_NUTRICION_ADOLESCENTES', 'MAESTRA_NUTRICION_ADULTOS', 'MAESTRA_NUTRICION_HOGARES', 'MAESTRA_NUTRICION_INFANTIL',
+    'MAESTRA_SALUD_ADOLESCENTES', 'MAESTRA_SALUD_ADULTOS', 'MAESTRA_SALUD_HOGARES', 'MAESTRA_SALUD_NINOS',
+];
+
 /** Mapeo de prefijo a descripción del dominio (de _DOMINIOS). */
 const DOMINIOS = [
     'CN' => 'Cuestionario de Nutrición',
     'CS' => 'Cuestionario de Salud',
 ];
+
+/** ¿El nombre (en cualquier case) corresponde a una vista analítica? */
+function es_vista(string $nombre): bool
+{
+    return in_array(strtoupper($nombre), VISTAS_PERMITIDAS, true);
+}
+
+/** Descripción legible del grupo de una vista, según su nombre. */
+function descripcion_vista(string $nombre): string
+{
+    $n = strtolower($nombre);
+    if (str_contains($n, 'nutricion')) return 'Vista maestra de Nutrición';
+    if (str_contains($n, 'salud'))     return 'Vista maestra de Salud';
+    if (str_contains($n, 'gran_maestra')) return 'Vista integrada (salud + nutrición)';
+    return 'Vista analítica';
+}
 
 /**
  * Excepción de la API con código y status HTTP, equivalente a DBError.
@@ -82,10 +109,10 @@ function json_error(string $code, string $message, int $status): void
 function validar_tabla(string $tabla): string
 {
     $up = strtoupper($tabla);
-    if (!in_array($up, TABLAS_PERMITIDAS, true)) {
+    if (!in_array($up, TABLAS_PERMITIDAS, true) && !in_array($up, VISTAS_PERMITIDAS, true)) {
         throw new ApiError(
             'table_not_allowed',
-            "La tabla '$tabla' no existe. Consulta GET /api/tablas para ver las tablas disponibles.",
+            "La tabla o vista '$tabla' no existe. Consulta GET /api/tablas para ver las disponibles.",
             404
         );
     }
